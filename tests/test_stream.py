@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import asyncio
+
 import pytest
 
 from pali.config import Settings
@@ -383,3 +385,65 @@ async def test_committed_messages_after_success(settings):
     assert len(proc.messages) == 2
     assert proc.messages[0] == {"role": "user", "content": "hi"}
     assert proc.messages[1] == {"role": "assistant", "content": "Hello!"}
+
+
+@pytest.mark.asyncio
+async def test_cancellation_cleans_up_user_message(settings):
+    """CancelledError should roll back the pending user message."""
+
+    class HangingInference:
+        async def stream(self, messages, system, mode="balanced"):
+            await asyncio.sleep(999)
+            yield ""  # make it a generator
+
+        async def cancel(self):
+            pass
+
+    proc = StreamProcessor(HangingInference(), settings)
+    cb = Callbacks()
+
+    task = asyncio.create_task(
+        proc.run("test", cb.on_text, cb.on_backtrack, cb.on_error, cb.on_done)
+    )
+    await asyncio.sleep(0)  # let task start
+    task.cancel()
+    with pytest.raises(asyncio.CancelledError):
+        await task
+
+    assert len(proc.messages) == 0
+
+
+# --- First checkpoint on retry ---
+
+
+@pytest.mark.asyncio
+async def test_first_checkpoint_allowed_on_retry():
+    """Checkpoint at the start of a retry branch should be accepted."""
+    settings = Settings(min_tokens_between_signals=10)
+    fake = FakeInference(
+        [
+            # First attempt: checkpoint, enough text, then backtrack
+            [
+                "<<checkpoint:a>>",
+                "enough text here",
+                "<<backtrack:a|bad>>",
+            ],
+            # Retry: immediate checkpoint should be accepted, then enough text, then backtrack
+            [
+                "<<checkpoint:b>>",
+                "enough text here",
+                "<<backtrack:b|also bad>>",
+            ],
+            # Final retry
+            ["done"],
+        ]
+    )
+    proc = StreamProcessor(fake, settings)
+    cb = Callbacks()
+
+    await proc.run("test", cb.on_text, cb.on_backtrack, cb.on_error, cb.on_done)
+
+    # Both backtracks should succeed — checkpoint 'b' was accepted on retry
+    assert len(cb.backtracks) == 2
+    assert cb.backtracks[0][0].checkpoint_id == "a"
+    assert cb.backtracks[1][0].checkpoint_id == "b"

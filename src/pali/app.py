@@ -147,6 +147,8 @@ class PalimpsestApp(App):
 
         def on_backtrack(bt: Backtrack, text: str) -> None:
             response_widget.update(text)
+            if self._current_indicator is not None:
+                self._current_indicator.remove()
             indicator = BacktrackIndicator(bt.reason)
             self._current_indicator = indicator
             chat.mount(indicator)

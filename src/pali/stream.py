@@ -86,6 +86,33 @@ class StreamProcessor:
         )
         self._dbg(f"[dim]start:[/dim] mode={ctx.mode}")
 
+        try:
+            parser = await self._inference_loop(ctx, on_text, on_backtrack, on_error)
+            if parser is None:
+                return
+
+            for token in parser.flush():
+                if isinstance(token, TextChunk):
+                    ctx.accumulated += token.text
+                    await _maybe_await(on_text(token.text))
+
+            self.messages.append({"role": "assistant", "content": ctx.accumulated})
+            self._dbg(f"[dim]done:[/dim] {len(ctx.accumulated)} chars, {ctx.bt_count} backtracks")
+            await _maybe_await(on_done(ctx.accumulated))
+        finally:
+            # Roll back user message if no assistant reply was committed (error,
+            # cancellation, or any other non-success exit path).
+            if self.messages and self.messages[-1]["role"] == "user":
+                self.messages.pop()
+
+    async def _inference_loop(
+        self,
+        ctx: _RunCtx,
+        on_text: Callable,
+        on_backtrack: Callable,
+        on_error: Callable,
+    ) -> SignalParser | None:
+        """Run inference with backtrack retries. Return final parser or None on error."""
         while True:
             api_messages = self._build_messages(ctx.accumulated)
             system = build_system_prompt(ctx.hints, self.settings.max_hint_length)
@@ -105,19 +132,9 @@ class StreamProcessor:
             except Exception as exc:
                 self._dbg(f"[bold red]error:[/bold red] {exc}")
                 await _maybe_await(on_error(f"Inference error: {exc}"))
-                self.messages.pop()
-                return
+                return None
             else:
-                break
-
-        for token in parser.flush():
-            if isinstance(token, TextChunk):
-                ctx.accumulated += token.text
-                await _maybe_await(on_text(token.text))
-
-        self.messages.append({"role": "assistant", "content": ctx.accumulated})
-        self._dbg(f"[dim]done:[/dim] {len(ctx.accumulated)} chars, {ctx.bt_count} backtracks")
-        await _maybe_await(on_done(ctx.accumulated))
+                return parser
 
     async def _process_token(
         self, token: object, ctx: _RunCtx, on_text: Callable, on_backtrack: Callable
@@ -183,7 +200,7 @@ class StreamProcessor:
         ctx.hints.append(bt.reason)
         ctx.mode = bt.mode or ctx.mode
         ctx.bt_count += 1
-        ctx.chars_since = 0
+        ctx.chars_since = self.settings.min_tokens_between_signals
         await _maybe_await(on_backtrack(bt, ctx.accumulated))
         raise _BacktrackSignal
 
