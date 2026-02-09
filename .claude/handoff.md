@@ -155,63 +155,13 @@ The system prompt went through two iterations. What finally worked:
 
 ## Known Issues
 
-### Stale backtrack indicators
-
-When multiple backtracks happen in one response, the `⟲ rethinking...` indicators stack up and
-only the last one gets removed on completion. Fix: track all indicators in a list and remove them
-all in `on_done`.
-
 ### Checkpoint re-emission after backtrack
 
 With multi-turn continuation (no prefill), the model doesn't see checkpoint tags from the preserved
 text. It may re-emit the same checkpoint ID. This is harmless — the checkpoint gets re-registered
 in the dict — but it wastes a few tokens and resets `chars_since_last_signal`.
 
-### First checkpoint often ignored on retry
-
-After a backtrack, `chars_since_last_signal` resets to 0. If the model immediately emits a
-checkpoint at the start of the retry, it gets rejected by the min-tokens guard. The current
-workaround in the first-attempt case (initialize to `min_tokens_between_signals`) doesn't apply
-to retries. Consider resetting to `min_tokens_between_signals` after backtrack too.
-
 ## Next Task
-
-### Debug log format for clean conversation recovery
-
-The current debug log mixes raw token deltas with signal events, making it surprisingly hard to
-reconstruct the final conversation text. The core problem: signal markup (`<<checkpoint:ID>>`)
-arrives split across multiple raw tokens, and the token that completes the signal often contains
-trailing content text in the same string (e.g. `raw: ':framing>>\n\nLet'`). This makes it
-impossible to determine where signal text ends and content text begins without re-implementing
-the signal parser.
-
-**Goal:** A log format where stitching the final conversation is trivial — concatenate the `text:`
-lines between `start:` and `done:`, skip lines between `BACKTRACK:` and the next `text:`.
-
-**Proposed format changes:**
-
-1. **Replace `raw:` with `text:`** — emit only the clean text that was delivered to the user
-    (i.e., what `on_text` receives), not the raw token deltas that include signal markup fragments.
-    This is the key change: `text:` lines never contain signal markup.
-
-1. **Keep signal event lines as-is** — `checkpoint:`, `BACKTRACK:`, `retry:`, `done:` already
-    work well as structured event markers.
-
-1. **Drop or move raw deltas to a separate verbose mode** — the raw token-by-token deltas are
-    useful for debugging the signal parser itself but not for conversation recovery. Either remove
-    them from the default trace or gate them behind a `--trace-raw` flag.
-
-**Where to change:**
-
-- `stream.py`: The `_trace()` calls currently log raw deltas from the API. Change to log the
-    clean text chunks that come out of the signal parser (the `TextChunk.text` values). The
-    checkpoint/backtrack event logging stays the same.
-- Consider adding a `user:` line at the start of each turn with the user's message, so the log
-    is fully self-contained (currently only assistant output is traced).
-
-**Validation:** Re-run the cryptobiosis conversation with `--debug`, then verify the log can be
-stitched into markdown with a trivial script (concatenate `text:` lines, handle `BACKTRACK:` by
-discarding back to checkpoint). Compare against `.claude/conversations/cryptobiosis.md`.
 
 See `.claude/conversations/cryptobiosis-analysis.md` for the analysis of the existing trace that
 motivated this change, and `cryptobiosis.md` for the recovered conversation.
@@ -297,8 +247,9 @@ When running with `--debug`, the debug panel (RichLog) shows events with Rich ma
 `pali_debug.log` gets the same content with markup stripped. Trace format:
 
 ```
-start: mode=balanced                              — new response started
-raw: 'token text'                                 — every raw delta from API
+user: 'the user message'                          — user message (turn start)
+start: mode=balanced                              — response started
+text: 'clean text chunk'                          — clean parser output (no signal markup)
 checkpoint: id (pos=N, total=M)                   — checkpoint accepted
 checkpoint ignored (too soon): id                 — rejected by min-tokens guard
 BACKTRACK: → id | reason | mode:X                 — backtrack triggered
@@ -307,6 +258,9 @@ backtrack budget exhausted                        — 4th+ backtrack rejected
 error: message                                    — API/network error
 done: N chars, M backtracks                       — response complete
 ```
+
+To recover the final conversation from a trace: concatenate `text:` lines between `start:` and
+`done:`, discarding text between `BACKTRACK:` and the next `text:` line.
 
 ## Test Coverage
 

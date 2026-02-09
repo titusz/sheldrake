@@ -413,6 +413,38 @@ async def test_cancellation_cleans_up_user_message(settings):
     assert len(proc.messages) == 0
 
 
+# --- Debug trace format ---
+
+
+@pytest.mark.asyncio
+async def test_debug_trace_emits_text_and_user_lines(settings):
+    """Debug trace should emit user: and text: lines, not raw: lines."""
+    debug_lines = []
+    fake = FakeInference(
+        [
+            ["<<checkpoint:a>>", "Hello", "<<backtrack:a|bad>>"],
+            ["Better"],
+        ]
+    )
+    proc = StreamProcessor(fake, settings, on_debug=debug_lines.append)
+    cb = Callbacks()
+
+    await proc.run("hi there", cb.on_text, cb.on_backtrack, cb.on_error, cb.on_done)
+
+    plain = list(debug_lines)
+    # user: line at start with the user's message
+    assert any("user:" in line and "hi there" in line for line in plain)
+    # text: lines for clean parser output
+    assert any("text:" in line and "Hello" in line for line in plain)
+    assert any("text:" in line and "Better" in line for line in plain)
+    # No raw: lines
+    assert not any("raw:" in line for line in plain)
+    # Signal events still present
+    assert any("checkpoint:" in line and "a" in line for line in plain)
+    assert any("BACKTRACK:" in line for line in plain)
+    assert any("done:" in line for line in plain)
+
+
 # --- First checkpoint on retry ---
 
 

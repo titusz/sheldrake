@@ -84,6 +84,7 @@ class StreamProcessor:
             mode=self.settings.default_mode,
             chars_since=self.settings.min_tokens_between_signals,
         )
+        self._dbg(f"[dim]user:[/dim] {user_message!r}")
         self._dbg(f"[dim]start:[/dim] mode={ctx.mode}")
 
         try:
@@ -94,6 +95,7 @@ class StreamProcessor:
             for token in parser.flush():
                 if isinstance(token, TextChunk):
                     ctx.accumulated += token.text
+                    self._dbg(f"[dim cyan]text:[/dim cyan] {token.text!r}")
                     await _maybe_await(on_text(token.text))
 
             self.messages.append({"role": "assistant", "content": ctx.accumulated})
@@ -123,7 +125,6 @@ class StreamProcessor:
             parser = SignalParser()
             try:
                 async for delta in self.inference.stream(api_messages, system, ctx.mode):
-                    self._dbg(f"[dim cyan]raw:[/dim cyan] {delta!r}")
                     for token in parser.feed(delta):
                         await self._process_token(token, ctx, on_text, on_backtrack)
 
@@ -145,6 +146,7 @@ class StreamProcessor:
                 ctx.accumulated += t
                 ctx.accumulated_raw += t
                 ctx.chars_since += len(t)
+                self._dbg(f"[dim cyan]text:[/dim cyan] {t!r}")
                 await _maybe_await(on_text(t))
             case Checkpoint() as cp:
                 self._handle_checkpoint(cp, ctx)
