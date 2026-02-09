@@ -6,16 +6,20 @@ import contextlib
 import io
 import os
 import re
-from typing import Any
+from typing import Any, ClassVar
 
 from textual import work
 from textual.app import App, ComposeResult
+from textual.binding import Binding
 from textual.containers import VerticalScroll
-from textual.widgets import Header, Input, Markdown, RichLog
+from textual.widgets import Header, Markdown, RichLog
 
+from pali import _win32_keys
 from pali.config import Settings
 from pali.protocol import Backtrack
-from pali.widgets import AssistantMessage, BacktrackIndicator, StatusBar, UserMessage
+from pali.widgets import AssistantMessage, BacktrackIndicator, ChatInput, StatusBar, UserMessage
+
+_win32_keys.apply()
 
 
 class PalimpsestApp(App):
@@ -23,6 +27,10 @@ class PalimpsestApp(App):
 
     TITLE = "Palimpsest"
     SUB_TITLE = "cognitive backtracking"
+
+    BINDINGS: ClassVar[list[Binding]] = [
+        Binding("escape", "cancel_inference", "Cancel", show=False),
+    ]
 
     CSS = """
     #chat-view {
@@ -35,9 +43,6 @@ class PalimpsestApp(App):
         height: 12;
         border-top: solid $surface-lighten-2;
         background: $surface-darken-1;
-    }
-    #input {
-        dock: bottom;
     }
     #status {
         dock: bottom;
@@ -53,6 +58,7 @@ class PalimpsestApp(App):
         self._processor = None
         self._current_stream: Any = None
         self._backtrack_indicators: list[BacktrackIndicator] = []
+        self._inferring = False
 
     def compose(self) -> ComposeResult:
         yield Header(show_clock=True)
@@ -60,7 +66,7 @@ class PalimpsestApp(App):
         if self._show_debug:
             yield RichLog(id="debug-log", markup=True, max_lines=200)
         yield StatusBar(id="status")
-        yield Input(placeholder="Type your message...", id="input")
+        yield ChatInput(id="input")
 
     _RICH_TAG_RE = re.compile(r"\[/?[a-z][a-z0-9_ ]*\]", re.IGNORECASE)
 
@@ -76,7 +82,7 @@ class PalimpsestApp(App):
             self._debug_file.flush()
 
     def on_mount(self) -> None:
-        self.query_one("#input", Input).focus()
+        self.query_one("#input", ChatInput).focus()
 
         status = self.query_one("#status", StatusBar)
         status.model = self.settings.model
@@ -112,12 +118,9 @@ class PalimpsestApp(App):
         if self._debug_file:
             self._debug_file.close()
 
-    def on_input_submitted(self, event: Input.Submitted) -> None:
+    def on_chat_input_submitted(self, event: ChatInput.Submitted) -> None:
         """Handle user message submission."""
-        text = event.value.strip()
-        if not text:
-            return
-        event.input.clear()
+        text = event.value
 
         chat = self.query_one("#chat-view", VerticalScroll)
         chat.mount(UserMessage(text))
@@ -162,6 +165,8 @@ class PalimpsestApp(App):
                 indicator.remove()
             self._backtrack_indicators.clear()
 
+        self._inferring = True
+        self.refresh_bindings()
         try:
             await self._processor.run(
                 user_message=user_text,
@@ -171,6 +176,18 @@ class PalimpsestApp(App):
                 on_done=on_done,
             )
         finally:
+            self._inferring = False
+            self.refresh_bindings()
             await stream.stop()
             self._current_stream = None
             chat.scroll_end(animate=False)
+
+    def check_action(self, action: str, parameters: tuple[object, ...]) -> bool | None:
+        """Show Esc binding only during inference."""
+        if action == "cancel_inference":
+            return self._inferring
+        return True
+
+    def action_cancel_inference(self) -> None:
+        """Cancel the running inference worker."""
+        self.workers.cancel_group(self, "default")

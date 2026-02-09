@@ -44,6 +44,7 @@ omit = [
     "src/pali/__main__.py",
     "src/pali/app.py",
     "src/pali/widgets.py",
+    "src/pali/_win32_keys.py",
 ]
 
 [tool.ruff]
@@ -52,6 +53,9 @@ target-version = "py312"
 
 [tool.ruff.lint]
 select = ["E", "F", "W", "I", "UP", "B", "C", "SIM", "RUF"]
+
+[tool.ruff.lint.per-file-ignores]
+"src/pali/_win32_keys.py" = ["C901"]
 
 [tool.ruff.lint.mccabe]
 max-complexity = 10

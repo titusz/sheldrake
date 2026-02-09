@@ -2,8 +2,12 @@
 
 from __future__ import annotations
 
+from typing import ClassVar
+
+from textual.binding import Binding
+from textual.message import Message
 from textual.reactive import reactive
-from textual.widgets import Markdown, Static
+from textual.widgets import Markdown, Static, TextArea
 
 
 class UserMessage(Static):
@@ -72,3 +76,47 @@ class StatusBar(Static):
         if self.backtracks > 0:
             parts.append(f"backtracks: {self.backtracks}")
         return " │ ".join(parts)
+
+
+class ChatInput(TextArea):
+    """Multiline chat input with Enter-to-submit and auto-grow."""
+
+    BINDINGS: ClassVar[list[Binding]] = [
+        Binding("enter", "submit", "Submit", show=False, priority=True),
+        Binding("ctrl+j,shift+enter", "newline", "Newline", show=False),
+    ]
+
+    DEFAULT_CSS = """
+    ChatInput {
+        dock: bottom;
+        height: auto;
+        max-height: 6;
+        border: tall $surface-lighten-2;
+    }
+    ChatInput:focus {
+        border: tall $accent;
+    }
+    """
+
+    class Submitted(Message):
+        """Posted when the user presses Enter to submit input."""
+
+        def __init__(self, value: str) -> None:
+            super().__init__()
+            self.value = value
+
+    def __init__(self, **kwargs) -> None:
+        kwargs.setdefault("show_line_numbers", False)
+        kwargs.setdefault("tab_behavior", "focus")
+        super().__init__(**kwargs)
+
+    def action_submit(self) -> None:
+        """Submit input text if non-empty."""
+        text = self.text.strip()
+        if text:
+            self.post_message(self.Submitted(text))
+            self.clear()
+
+    def action_newline(self) -> None:
+        """Insert a newline character."""
+        self.insert("\n")
