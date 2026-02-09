@@ -75,14 +75,25 @@ deterministic to say something real here."*
 
 ### Architecture
 
-```
-User Input -> StreamProcessor -> InferenceManager -> Anthropic API
-                    |                   |
-              SignalParser <---- async token deltas
-                    |
-        TextChunk / Checkpoint / Backtrack
-                    |
-            Callbacks -> Textual Widgets
+```mermaid
+flowchart TD
+    A[User Input] --> B
+
+    subgraph Orchestration
+        B[StreamProcessor] --> E[SignalParser]
+    end
+
+    subgraph Inference
+        C[InferenceManager] --> D[Anthropic API]
+    end
+
+    subgraph UI
+        G[Callbacks] --> H[Textual Widgets]
+    end
+
+    B --> C
+    D -- async token deltas --> E
+    E -- TextChunk / Checkpoint / Backtrack --> G
 ```
 
 | Module             | Role                                                     |
