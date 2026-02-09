@@ -52,7 +52,7 @@ class PalimpsestApp(App):
         self._debug_file: io.TextIOWrapper | None = None
         self._processor = None
         self._current_stream: Any = None
-        self._current_indicator: BacktrackIndicator | None = None
+        self._backtrack_indicators: list[BacktrackIndicator] = []
 
     def compose(self) -> ComposeResult:
         yield Header(show_clock=True)
@@ -147,10 +147,8 @@ class PalimpsestApp(App):
 
         def on_backtrack(bt: Backtrack, text: str) -> None:
             response_widget.update(text)
-            if self._current_indicator is not None:
-                self._current_indicator.remove()
             indicator = BacktrackIndicator(bt.reason)
-            self._current_indicator = indicator
+            self._backtrack_indicators.append(indicator)
             chat.mount(indicator)
             status.backtracks += 1
             if bt.mode:
@@ -160,9 +158,9 @@ class PalimpsestApp(App):
             response_widget.update(f"**Error:** {msg}")
 
         def on_done(text: str) -> None:
-            if self._current_indicator is not None:
-                self._current_indicator.remove()
-                self._current_indicator = None
+            for indicator in self._backtrack_indicators:
+                indicator.remove()
+            self._backtrack_indicators.clear()
 
         try:
             await self._processor.run(
