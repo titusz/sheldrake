@@ -17,5 +17,15 @@
 
 ## Research & Tools
 
-- **Verify versions independently**: AI-powered docs (deepwiki) can return outdated version numbers. Cross-check with `pip index versions` or GitHub releases pages. In this session, deepwiki said ruff-pre-commit was at v0.1.11 when it was actually v0.15.0.
+- **Verify versions independently**: AI-powered docs (deepwiki) can return outdated version numbers. Cross-check with `pip index versions` or GitHub releases pages.
 - **Use deepwiki when asked**: When the user specifies a research tool preference, switch to it promptly rather than continuing with web searches.
+
+## Analysis vs Implementation
+
+- **Match the mode to the ask**: When asked to analyze, review, or discuss — stay in that mode. Don't pivot to suggesting code changes or improvements unless explicitly asked. Analysis tasks should produce insights, not action items.
+- **Read completely before analyzing**: When examining logs or large files, ensure you have the full content before drawing conclusions. Truncated data leads to incomplete analysis.
+
+## Debugging & Problem Escalation
+
+- **Surface root causes, don't just fix symptoms**: When a task requires increasingly complex workarounds (3+ iterations), step back and ask whether the underlying design is the problem. Flag it to the user as a potential improvement opportunity rather than silently building more elaborate fixes.
+- **Check tool-layer assumptions early**: The Read tool adds line-number prefixes that aren't in the actual file. When writing parsers for file formats, verify the real format with a quick `repr()` check before building regex patterns around display artifacts.
