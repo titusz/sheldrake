@@ -21,7 +21,7 @@ class FakeInference:
         self._sequences = list(sequences)
         self.cancel_count = 0
 
-    async def stream(self, messages, system, mode="balanced"):
+    async def stream(self, messages, system, mode="balanced", temperature=None):
         seq = self._sequences.pop(0)
         for token in seq:
             yield token
@@ -131,9 +131,9 @@ async def test_retry_uses_multiturn_continuation(settings):
     messages_seen = []
 
     class SpyInference(FakeInference):
-        async def stream(self, messages, system, mode="balanced"):
+        async def stream(self, messages, system, mode="balanced", temperature=None):
             messages_seen.append(messages)
-            async for t in super().stream(messages, system, mode):
+            async for t in super().stream(messages, system, mode, temperature):
                 yield t
 
     fake = SpyInference(
@@ -185,9 +185,9 @@ async def test_unknown_mode_falls_back(settings):
     modes_used = []
 
     class SpyInference(FakeInference):
-        async def stream(self, messages, system, mode="balanced"):
+        async def stream(self, messages, system, mode="balanced", temperature=None):
             modes_used.append(mode)
-            async for t in super().stream(messages, system, mode):
+            async for t in super().stream(messages, system, mode, temperature):
                 yield t
 
     fake = SpyInference(
@@ -289,7 +289,7 @@ async def test_api_error_calls_on_error(settings):
     """API errors should call on_error and clean up message state."""
 
     class FailingInference:
-        async def stream(self, messages, system, mode="balanced"):
+        async def stream(self, messages, system, mode="balanced", temperature=None):
             raise ConnectionError("network down")
             yield  # make it a generator
 
@@ -315,9 +315,9 @@ async def test_backtrack_with_mode_shift(settings):
     modes_used = []
 
     class SpyInference(FakeInference):
-        async def stream(self, messages, system, mode="balanced"):
+        async def stream(self, messages, system, mode="balanced", temperature=None):
             modes_used.append(mode)
-            async for t in super().stream(messages, system, mode):
+            async for t in super().stream(messages, system, mode, temperature):
                 yield t
 
     fake = SpyInference(
@@ -343,9 +343,9 @@ async def test_hints_reset_between_runs(settings):
     systems_seen = []
 
     class SpyInference(FakeInference):
-        async def stream(self, messages, system, mode="balanced"):
+        async def stream(self, messages, system, mode="balanced", temperature=None):
             systems_seen.append(system)
-            async for t in super().stream(messages, system, mode):
+            async for t in super().stream(messages, system, mode, temperature):
                 yield t
 
     fake = SpyInference(
@@ -366,8 +366,8 @@ async def test_hints_reset_between_runs(settings):
     # The system prompt for q2's first attempt should NOT contain hints
     # systems_seen: [q1-attempt1, q1-attempt2, q2-attempt1]
     assert len(systems_seen) == 3
-    assert "Active Backtrack Context" in systems_seen[1]  # q1 retry has hint
-    assert "Active Backtrack Context" not in systems_seen[2]  # q2 is clean
+    assert "Constraints for This Attempt" in systems_seen[1]  # q1 retry has hint
+    assert "Constraints for This Attempt" not in systems_seen[2]  # q2 is clean
 
 
 # --- Message history ---
@@ -392,7 +392,7 @@ async def test_cancellation_cleans_up_user_message(settings):
     """CancelledError should roll back the pending user message."""
 
     class HangingInference:
-        async def stream(self, messages, system, mode="balanced"):
+        async def stream(self, messages, system, mode="balanced", temperature=None):
             await asyncio.sleep(999)
             yield ""  # make it a generator
 
@@ -479,3 +479,118 @@ async def test_first_checkpoint_allowed_on_retry():
     assert len(cb.backtracks) == 2
     assert cb.backtracks[0][0].checkpoint_id == "a"
     assert cb.backtracks[1][0].checkpoint_id == "b"
+
+
+# --- Temperature override ---
+
+
+@pytest.mark.asyncio
+async def test_backtrack_with_temperature_override(settings):
+    """Temperature in backtrack signal should be passed to inference."""
+    temps_used = []
+
+    class SpyInference(FakeInference):
+        async def stream(self, messages, system, mode="balanced", temperature=None):
+            temps_used.append(temperature)
+            async for t in super().stream(messages, system, mode, temperature):
+                yield t
+
+    fake = SpyInference(
+        [
+            ["<<checkpoint:a>>", "text", "<<backtrack:a|reason|temp:0.7>>"],
+            ["fixed"],
+        ]
+    )
+    proc = StreamProcessor(fake, settings)
+    cb = Callbacks()
+
+    await proc.run("test", cb.on_text, cb.on_backtrack, cb.on_error, cb.on_done)
+
+    # First call: no override, second call: 0.7
+    assert temps_used == [None, 0.7]
+
+
+@pytest.mark.asyncio
+async def test_backtrack_with_temp_out_of_range(settings):
+    """Temperature outside [0.0, 1.0] should be discarded."""
+    temps_used = []
+
+    class SpyInference(FakeInference):
+        async def stream(self, messages, system, mode="balanced", temperature=None):
+            temps_used.append(temperature)
+            async for t in super().stream(messages, system, mode, temperature):
+                yield t
+
+    fake = SpyInference(
+        [
+            ["<<checkpoint:a>>", "text", "<<backtrack:a|reason|temp:1.5>>"],
+            ["fixed"],
+        ]
+    )
+    proc = StreamProcessor(fake, settings)
+    cb = Callbacks()
+
+    await proc.run("test", cb.on_text, cb.on_backtrack, cb.on_error, cb.on_done)
+
+    # Both calls should have None (1.5 discarded)
+    assert temps_used == [None, None]
+
+
+@pytest.mark.asyncio
+async def test_backtrack_with_temp_and_mode(settings):
+    """When both temp and mode specified, temp wins at inference layer."""
+    temps_used = []
+    modes_used = []
+
+    class SpyInference(FakeInference):
+        async def stream(self, messages, system, mode="balanced", temperature=None):
+            temps_used.append(temperature)
+            modes_used.append(mode)
+            async for t in super().stream(messages, system, mode, temperature):
+                yield t
+
+    fake = SpyInference(
+        [
+            ["<<checkpoint:a>>", "text", "<<backtrack:a|reason|mode:precise|temp:0.8>>"],
+            ["fixed"],
+        ]
+    )
+    proc = StreamProcessor(fake, settings)
+    cb = Callbacks()
+
+    await proc.run("test", cb.on_text, cb.on_backtrack, cb.on_error, cb.on_done)
+
+    # Mode changes to precise, but temp override of 0.8 is passed
+    assert modes_used == ["balanced", "precise"]
+    assert temps_used == [None, 0.8]
+
+
+@pytest.mark.asyncio
+async def test_system_prompt_includes_temperature(settings):
+    """System prompt should contain current temperature and mode state."""
+    systems_seen = []
+
+    class SpyInference(FakeInference):
+        async def stream(self, messages, system, mode="balanced", temperature=None):
+            systems_seen.append(system)
+            async for t in super().stream(messages, system, mode, temperature):
+                yield t
+
+    fake = SpyInference(
+        [
+            ["<<checkpoint:a>>", "text", "<<backtrack:a|reason|temp:0.7>>"],
+            ["fixed"],
+        ]
+    )
+    proc = StreamProcessor(fake, settings)
+    cb = Callbacks()
+
+    await proc.run("test", cb.on_text, cb.on_backtrack, cb.on_error, cb.on_done)
+
+    # First call: default temperature 0.6 (balanced)
+    assert "Temperature: 0.6 (balanced)" in systems_seen[0]
+    # Retry: temperature 0.7 (still balanced mode)
+    assert "Temperature: 0.7 (balanced)" in systems_seen[1]
+    # Both should list available modes
+    assert "Available modes:" in systems_seen[0]
+    assert "Available modes:" in systems_seen[1]

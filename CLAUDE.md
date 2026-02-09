@@ -54,22 +54,23 @@ User Input → StreamProcessor.run() → InferenceManager.stream() → Anthropic
 ### Key modules (`src/pali/`)
 
 - **protocol.py** — `SignalParser` streaming state machine. Parses `<<checkpoint:ID>>` and
-    `<<backtrack:ID|reason|rephrase:text|mode:name>>` from raw token deltas. Handles `<<` collisions
-    with C++ code through strict prefix validation before entering signal mode.
+    `<<backtrack:ID|reason|rephrase:text|mode:name|temp:X>>` from raw token deltas. Handles `<<`
+    collisions with C++ code through strict prefix validation before entering signal mode.
 
 - **stream.py** — `StreamProcessor` orchestrator. Manages the backtrack retry loop: tracks checkpoints,
     handles rewind on backtrack signal, builds multi-turn continuation messages (not prefill — Opus 4.6
-    doesn't support it), enforces budget (max 3 backtracks) and min-token spacing. Uses `InferenceLike`
+    doesn't support it), enforces budget (max 8 backtracks) and min-token spacing. Uses `InferenceLike`
     Protocol so test doubles satisfy the type checker. Mutable run state lives in a `_RunCtx` dataclass.
 
 - **inference.py** — `InferenceManager` wraps AsyncAnthropic for streaming with cancel/restart support.
-    Maps cognitive modes to temperature values.
+    Maps cognitive modes to temperature values. Accepts optional temperature override from backtrack.
 
 - **system_prompt.py** — Dynamic prompt template. `build_system_prompt()` injects accumulated backtrack
-    hints between retries. Hints reset per user message (not carried across turns).
+    hints and current generation state (temperature, mode) between retries. Hints reset per user message
+    (not carried across turns).
 
 - **config.py** — `Settings` (Pydantic model) and cognitive modes: `precise` (0.2), `exploratory` (0.9),
-    `adversarial` (0.7), `balanced` (0.5 — default).
+    `adversarial` (0.7), `balanced` (0.6 — default).
 
 - **app.py** — Textual app orchestration. Lazy API client init (checks `ANTHROPIC_API_KEY` on mount).
     Uses `@work(exclusive=True)` for cancel-and-replace on new input.
@@ -80,11 +81,12 @@ User Input → StreamProcessor.run() → InferenceManager.stream() → Anthropic
 ### Backtrack protocol signals
 
 ```
-<<checkpoint:ID>>                                      # Place checkpoint
-<<backtrack:ID|reason>>                                # Simple backtrack
-<<backtrack:ID|reason|rephrase:text>>                  # With prompt reframing
-<<backtrack:ID|reason|mode:precise>>                   # With cognitive mode shift
-<<backtrack:ID|reason|rephrase:text|mode:precise>>     # Full form
+<<checkpoint:ID>>                                              # Place checkpoint
+<<backtrack:ID|reason>>                                        # Simple backtrack
+<<backtrack:ID|reason|rephrase:text>>                          # With prompt reframing
+<<backtrack:ID|reason|mode:precise>>                           # With cognitive mode shift
+<<backtrack:ID|reason|temp:0.7>>                               # With direct temperature
+<<backtrack:ID|reason|rephrase:text|mode:precise|temp:0.3>>    # Full form
 ```
 
 ### Design decisions
@@ -93,6 +95,9 @@ User Input → StreamProcessor.run() → InferenceManager.stream() → Anthropic
 - **Committed vs transient state**: `self.messages` only stores complete user/assistant pairs. In-progress
     response is transient until success.
 - **Stale checkpoint pruning**: After rewind to checkpoint A, all checkpoints beyond A are removed.
+- **Temperature override**: `temp:X` in backtrack signals takes precedence over mode-derived temperature.
+    Out-of-range values (outside 0.0-1.0) are discarded. The system prompt always shows the model its
+    current temperature and mode.
 - **`_maybe_await` pattern**: Callbacks can be sync (tests) or async (TUI) — helper inspects and
     conditionally awaits.
 

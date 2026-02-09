@@ -259,3 +259,33 @@ def test_plain_text_only():
     tokens = collect(parser, "just plain text here")
     assert len(tokens) == 1
     assert tokens[0] == TextChunk(text="just plain text here")
+
+
+# --- Temperature in backtrack ---
+
+
+def test_parse_backtrack_with_temp():
+    parser = SignalParser()
+    tokens = collect(parser, "<<backtrack:a|reason|temp:0.7>>")
+    bt = tokens[0]
+    assert isinstance(bt, Backtrack)
+    assert bt.checkpoint_id == "a"
+    assert bt.reason == "reason"
+    assert bt.temperature == 0.7
+
+
+def test_parse_backtrack_with_temp_and_mode():
+    parser = SignalParser()
+    tokens = collect(parser, "<<backtrack:a|reason|mode:precise|temp:0.3>>")
+    bt = tokens[0]
+    assert isinstance(bt, Backtrack)
+    assert bt.mode == "precise"
+    assert bt.temperature == 0.3
+
+
+def test_parse_backtrack_with_invalid_temp():
+    parser = SignalParser()
+    tokens = collect(parser, "<<backtrack:a|reason|temp:abc>>")
+    bt = tokens[0]
+    assert isinstance(bt, Backtrack)
+    assert bt.temperature is None

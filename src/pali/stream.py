@@ -19,7 +19,11 @@ class InferenceLike(Protocol):
     """Protocol for inference backends (production and test doubles)."""
 
     def stream(
-        self, messages: list[dict], system: str, mode: str = "balanced"
+        self,
+        messages: list[dict],
+        system: str,
+        mode: str = "balanced",
+        temperature: float | None = None,
     ) -> AsyncIterator[str]: ...
 
     async def cancel(self) -> None: ...
@@ -46,6 +50,7 @@ class _RunCtx:
     hints: list[str] = field(default_factory=list)
     bt_count: int = 0
     mode: str = "balanced"
+    temperature: float | None = None
 
 
 class StreamProcessor:
@@ -117,14 +122,27 @@ class StreamProcessor:
         """Run inference with backtrack retries. Return final parser or None on error."""
         while True:
             api_messages = self._build_messages(ctx.accumulated)
-            system = build_system_prompt(ctx.hints, self.settings.max_hint_length)
+            effective_temp = ctx.temperature
+            if effective_temp is None:
+                effective_temp = self.settings.modes[ctx.mode]["temperature"]
+            system = build_system_prompt(
+                ctx.hints,
+                self.settings.max_hint_length,
+                mode=ctx.mode,
+                temperature=effective_temp,
+                modes=self.settings.modes,
+            )
 
             if ctx.hints:
-                self._dbg(f"[dim]retry:[/dim] hints={ctx.hints}")
+                self._dbg(
+                    f"[dim]retry:[/dim] mode={ctx.mode}, temp={effective_temp}, hints={ctx.hints}"
+                )
 
             parser = SignalParser()
             try:
-                async for delta in self.inference.stream(api_messages, system, ctx.mode):
+                async for delta in self.inference.stream(
+                    api_messages, system, ctx.mode, temperature=ctx.temperature
+                ):
                     for token in parser.feed(delta):
                         await self._process_token(token, ctx, on_text, on_backtrack)
 
@@ -187,11 +205,16 @@ class StreamProcessor:
             self._dbg(f"[yellow]unknown mode {bt.mode!r},[/yellow] keeping {ctx.mode}")
             bt.mode = None
 
+        if bt.temperature is not None and not (0.0 <= bt.temperature <= 1.0):
+            self._dbg(f"[yellow]temp {bt.temperature} out of range [0.0, 1.0],[/yellow] discarding")
+            bt.temperature = None
+
         self._dbg(
             f"[bold magenta]BACKTRACK:[/bold magenta] "
             f"→ {bt.checkpoint_id} | {bt.reason}"
             + (f" | mode:{bt.mode}" if bt.mode else "")
             + (f" | rephrase:{bt.rephrase}" if bt.rephrase else "")
+            + (f" | temp:{bt.temperature}" if bt.temperature is not None else "")
         )
 
         await self.inference.cancel()
@@ -201,6 +224,8 @@ class StreamProcessor:
         ctx.checkpoints = {k: v for k, v in ctx.checkpoints.items() if v.position <= cp.position}
         ctx.hints.append(bt.reason)
         ctx.mode = bt.mode or ctx.mode
+        if bt.temperature is not None:
+            ctx.temperature = bt.temperature
         ctx.bt_count += 1
         ctx.chars_since = self.settings.min_tokens_between_signals
         await _maybe_await(on_backtrack(bt, ctx.accumulated))

@@ -24,15 +24,17 @@ class InferenceManager:
         messages: list[dict],
         system: str,
         mode: str = "balanced",
+        temperature: float | None = None,
     ) -> AsyncIterator[str]:
         """Start streaming inference. Yields text deltas."""
         params = self.settings.modes[mode]
+        effective_temp = temperature if temperature is not None else params["temperature"]
         kwargs: dict = {
             "model": self.settings.model,
             "max_tokens": 4096,
             "system": system,
             "messages": messages,
-            "temperature": params["temperature"],
+            "temperature": effective_temp,
         }
         if "top_p" in params:
             kwargs["top_p"] = params["top_p"]

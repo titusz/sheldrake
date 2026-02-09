@@ -7,6 +7,7 @@ validation to avoid false positives on '<<' in code.
 
 from __future__ import annotations
 
+import contextlib
 import enum
 
 from pydantic import BaseModel
@@ -40,6 +41,7 @@ class Backtrack(BaseModel):
     reason: str
     rephrase: str | None = None
     mode: str | None = None
+    temperature: float | None = None
 
 
 class _State(enum.Enum):
@@ -52,40 +54,44 @@ class _State(enum.Enum):
 Token = TextChunk | Checkpoint | Backtrack
 
 
+def _parse_backtrack_extras(
+    parts: list[str],
+) -> tuple[str | None, str | None, float | None]:
+    """Extract optional fields (rephrase, mode, temp) from backtrack parts."""
+    rephrase = None
+    mode = None
+    temperature = None
+    for part in parts:
+        if part.startswith("rephrase:"):
+            rephrase = part[len("rephrase:") :]
+        elif part.startswith("mode:"):
+            mode = part[len("mode:") :]
+        elif part.startswith("temp:"):
+            with contextlib.suppress(ValueError):
+                temperature = float(part[len("temp:") :])
+    return rephrase, mode, temperature
+
+
 def _parse_signal_body(body: str) -> Checkpoint | Backtrack | None:
     """Parse the content between << and >> into a signal object."""
     if body.startswith("checkpoint:"):
         cp_id = body[len("checkpoint:") :]
-        if not cp_id:
-            return None
-        return Checkpoint(id=cp_id)
+        return Checkpoint(id=cp_id) if cp_id else None
 
     if body.startswith("backtrack:"):
         rest = body[len("backtrack:") :]
         if not rest:
             return None
         parts = rest.split("|")
-        if len(parts) < 2:
+        if len(parts) < 2 or not parts[0] or not parts[1]:
             return None
-
-        checkpoint_id = parts[0]
-        reason = parts[1]
-        if not checkpoint_id or not reason:
-            return None
-
-        rephrase = None
-        mode = None
-        for part in parts[2:]:
-            if part.startswith("rephrase:"):
-                rephrase = part[len("rephrase:") :]
-            elif part.startswith("mode:"):
-                mode = part[len("mode:") :]
-
+        rephrase, mode, temperature = _parse_backtrack_extras(parts[2:])
         return Backtrack(
-            checkpoint_id=checkpoint_id,
-            reason=reason,
+            checkpoint_id=parts[0],
+            reason=parts[1],
             rephrase=rephrase,
             mode=mode,
+            temperature=temperature,
         )
 
     return None

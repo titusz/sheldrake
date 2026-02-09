@@ -32,7 +32,7 @@ def test_mode_parameters_exploratory(settings):
 
 def test_mode_parameters_balanced(settings):
     """Verify balanced mode is the default middle ground."""
-    assert settings.modes["balanced"]["temperature"] == 0.5
+    assert settings.modes["balanced"]["temperature"] == 0.6
 
 
 @pytest.mark.asyncio
@@ -80,7 +80,7 @@ async def test_stream_yields_text_deltas(settings, mock_client):
     # Verify API was called with correct parameters
     mock_client.messages.stream.assert_called_once()
     call_kwargs = mock_client.messages.stream.call_args.kwargs
-    assert call_kwargs["temperature"] == 0.5
+    assert call_kwargs["temperature"] == 0.6
     assert "top_p" not in call_kwargs
 
 
