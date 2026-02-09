@@ -40,20 +40,6 @@ class AssistantMessage(Markdown):
     """
 
 
-class BacktrackIndicator(Static):
-    """Brief visual indicator when backtrack occurs."""
-
-    DEFAULT_CSS = """
-    BacktrackIndicator {
-        color: $warning;
-        margin: 0 4;
-    }
-    """
-
-    def __init__(self, reason: str) -> None:
-        super().__init__(f"⟲ rethinking... ({reason})")
-
-
 class BacktrackEntry(Static):
     """Single backtrack event entry for the side panel."""
 

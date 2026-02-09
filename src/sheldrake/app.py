@@ -18,7 +18,6 @@ from sheldrake.config import Settings
 from sheldrake.protocol import Backtrack
 from sheldrake.widgets import (
     AssistantMessage,
-    BacktrackIndicator,
     BacktrackPanel,
     ChatInput,
     StatusBar,
@@ -71,7 +70,6 @@ class SheldrakeApp(App):
         self._debug_file: io.TextIOWrapper | None = None
         self._processor = None
         self._current_stream: Any = None
-        self._backtrack_indicators: list[BacktrackIndicator] = []
         self._inferring = False
 
     def compose(self) -> ComposeResult:
@@ -167,9 +165,6 @@ class SheldrakeApp(App):
 
         def on_backtrack(bt: Backtrack, text: str) -> None:
             response_widget.update(text)
-            indicator = BacktrackIndicator(bt.reason)
-            self._backtrack_indicators.append(indicator)
-            chat.mount(indicator)
             status.backtracks += 1
             if bt.mode:
                 status.mode = bt.mode
@@ -181,9 +176,7 @@ class SheldrakeApp(App):
             response_widget.update(f"**Error:** {msg}")
 
         def on_done(text: str) -> None:
-            for indicator in self._backtrack_indicators:
-                indicator.remove()
-            self._backtrack_indicators.clear()
+            pass
 
         self._inferring = True
         self.refresh_bindings()
