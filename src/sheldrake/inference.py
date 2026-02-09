@@ -5,7 +5,7 @@ from __future__ import annotations
 from collections.abc import AsyncIterator
 from typing import TYPE_CHECKING
 
-from pali.config import Settings
+from sheldrake.config import Settings
 
 if TYPE_CHECKING:
     from anthropic import AsyncAnthropic, AsyncMessageStream

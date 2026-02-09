@@ -358,43 +358,6 @@ wheels = [
 ]
 
 [[package]]
-name = "pali"
-version = "0.1.0"
-source = { editable = "." }
-dependencies = [
-    { name = "anthropic" },
-    { name = "pydantic" },
-    { name = "textual" },
-    { name = "typer" },
-]
-
-[package.dev-dependencies]
-dev = [
-    { name = "prek" },
-    { name = "pytest" },
-    { name = "pytest-asyncio" },
-    { name = "pytest-cov" },
-    { name = "ty" },
-]
-
-[package.metadata]
-requires-dist = [
-    { name = "anthropic", specifier = ">=0.45" },
-    { name = "pydantic", specifier = ">=2.0" },
-    { name = "textual", specifier = ">=1.0" },
-    { name = "typer", specifier = ">=0.15" },
-]
-
-[package.metadata.requires-dev]
-dev = [
-    { name = "prek", specifier = ">=0.3" },
-    { name = "pytest", specifier = ">=8.0" },
-    { name = "pytest-asyncio", specifier = ">=0.25" },
-    { name = "pytest-cov", specifier = ">=6.0" },
-    { name = "ty", specifier = ">=0.0.1a0" },
-]
-
-[[package]]
 name = "platformdirs"
 version = "4.5.1"
 source = { registry = "https://pypi.org/simple" }
@@ -585,6 +548,43 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/74/99/a4cab2acbb884f80e558b0771e97e21e939c5dfb460f488d19df485e8298/rich-14.3.2.tar.gz", hash = "sha256:e712f11c1a562a11843306f5ed999475f09ac31ffb64281f73ab29ffdda8b3b8", size = 230143, upload-time = "2026-02-01T16:20:47.908Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/ef/45/615f5babd880b4bd7d405cc0dc348234c5ffb6ed1ea33e152ede08b2072d/rich-14.3.2-py3-none-any.whl", hash = "sha256:08e67c3e90884651da3239ea668222d19bea7b589149d8014a21c633420dbb69", size = 309963, upload-time = "2026-02-01T16:20:46.078Z" },
+]
+
+[[package]]
+name = "sheldrake"
+version = "0.1.0"
+source = { editable = "." }
+dependencies = [
+    { name = "anthropic" },
+    { name = "pydantic" },
+    { name = "textual" },
+    { name = "typer" },
+]
+
+[package.dev-dependencies]
+dev = [
+    { name = "prek" },
+    { name = "pytest" },
+    { name = "pytest-asyncio" },
+    { name = "pytest-cov" },
+    { name = "ty" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "anthropic", specifier = ">=0.45" },
+    { name = "pydantic", specifier = ">=2.0" },
+    { name = "textual", specifier = ">=1.0" },
+    { name = "typer", specifier = ">=0.15" },
+]
+
+[package.metadata.requires-dev]
+dev = [
+    { name = "prek", specifier = ">=0.3" },
+    { name = "pytest", specifier = ">=8.0" },
+    { name = "pytest-asyncio", specifier = ">=0.25" },
+    { name = "pytest-cov", specifier = ">=6.0" },
+    { name = "ty", specifier = ">=0.0.1a0" },
 ]
 
 [[package]]

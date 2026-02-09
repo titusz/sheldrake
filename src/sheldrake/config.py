@@ -15,7 +15,7 @@ MODES: dict[str, dict[str, float]] = {
 
 
 class Settings(BaseModel):
-    """Runtime configuration for Palimpsest."""
+    """Runtime configuration for Sheldrake."""
 
     model: str = DEFAULT_MODEL
     max_backtracks: int = 8

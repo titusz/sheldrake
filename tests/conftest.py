@@ -1,1 +1,1 @@
-"""Shared test fixtures for pali."""
+"""Shared test fixtures for sheldrake."""

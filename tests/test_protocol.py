@@ -1,6 +1,6 @@
 """Tests for the backtrack protocol parser."""
 
-from pali.protocol import Backtrack, Checkpoint, SignalParser, TextChunk
+from sheldrake.protocol import Backtrack, Checkpoint, SignalParser, TextChunk
 
 
 def collect(parser: SignalParser, text: str) -> list:

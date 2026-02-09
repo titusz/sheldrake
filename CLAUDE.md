@@ -6,7 +6,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-**Palimpsest (pali)** is a TUI demo application that enables an AI model to rewind its own token stream
+**Palimpsest (sheldrake)** is a TUI demo application that enables an AI model to rewind its own token stream
 mid-generation through **cognitive backtracking**. The model places invisible checkpoints during generation,
 detects suboptimal paths, and signals the system to cancel inference, truncate context to a checkpoint, and
 restart with a hint about what went wrong.
@@ -19,16 +19,16 @@ Hatchling, managed with uv.
 ```bash
 # Install and run
 uv sync                          # Install dependencies
-uv run pali                      # Launch TUI
-uv run pali --debug              # Launch with debug panel + trace file (pali_debug.log)
-uv run pali --model <model-id>   # Use specific Anthropic model
+uv run sheldrake                      # Launch TUI
+uv run sheldrake --debug              # Launch with debug panel + trace file (sheldrake_debug.log)
+uv run sheldrake --model <model-id>   # Use specific Anthropic model
 
 # Tests
 uv run pytest                    # Run all tests (43 tests)
 uv run pytest tests/test_protocol.py -v          # Parser tests only
 uv run pytest tests/test_stream.py -v            # Orchestrator tests only
 uv run pytest tests/test_protocol.py::test_name  # Single test
-uv run pytest --cov=pali --cov-fail-under=80     # With coverage (80% minimum)
+uv run pytest --cov=sheldrake --cov-fail-under=80     # With coverage (80% minimum)
 
 # Quality gates (prek — pre-commit replacement)
 uv run prek run --all-files      # Run all hooks on all files
@@ -51,7 +51,7 @@ User Input → StreamProcessor.run() → InferenceManager.stream() → Anthropic
             Callbacks → Textual Widgets
 ```
 
-### Key modules (`src/pali/`)
+### Key modules (`src/sheldrake/`)
 
 - **protocol.py** — `SignalParser` streaming state machine. Parses `<<checkpoint:ID>>` and
     `<<backtrack:ID|reason|rephrase:text|mode:name|temp:X>>` from raw token deltas. Handles `<<`
@@ -124,7 +124,7 @@ Pre-commit hooks managed by [prek](https://github.com/j178/prek) (`.pre-commit-c
 | `ruff-format`                                      | Code formatting (line-length=100)           |
 | `mdformat` with `mdformat-mkdocs[recommended]`     | Markdown formatting                         |
 | `ty check`                                         | Type checking                               |
-| `pytest --cov=pali --cov-fail-under=80`            | Tests + coverage gate                       |
+| `pytest --cov=sheldrake --cov-fail-under=80`       | Tests + coverage gate                       |
 
 Ruff config: `line-length = 100`, `target-version = "py312"`, McCabe `max-complexity = 10` (grade B).
 

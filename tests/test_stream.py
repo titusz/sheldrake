@@ -6,9 +6,9 @@ import asyncio
 
 import pytest
 
-from pali.config import Settings
-from pali.protocol import Backtrack
-from pali.stream import StreamProcessor
+from sheldrake.config import Settings
+from sheldrake.protocol import Backtrack
+from sheldrake.stream import StreamProcessor
 
 
 class FakeInference:

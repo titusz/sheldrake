@@ -1,10 +1,10 @@
-"""Entry point for `python -m pali` and the `pali` CLI command."""
+"""Entry point for `python -m sheldrake` and the `sheldrake` CLI command."""
 
 from __future__ import annotations
 
 import typer
 
-from pali.config import DEFAULT_MODEL
+from sheldrake.config import DEFAULT_MODEL
 
 app = typer.Typer(add_completion=False)
 
@@ -14,10 +14,10 @@ def main(
     model: str = typer.Option(DEFAULT_MODEL, help="Anthropic model ID"),
     debug: bool = typer.Option(False, help="Show debug panel with raw token stream"),
 ) -> None:
-    """Pali — Where AI learns to use the backspace key."""
-    from pali.app import PalimpsestApp
+    """Sheldrake — Where AI learns to use the backspace key."""
+    from sheldrake.app import SheldrakeApp
 
-    tui = PalimpsestApp(model=model, debug=debug)
+    tui = SheldrakeApp(model=model, debug=debug)
     tui.run()
 
 

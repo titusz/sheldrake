@@ -193,7 +193,7 @@ def build_system_prompt(
     modes: dict[str, dict[str, float]] | None = None,
 ) -> str:
     """Build the system prompt with generation state and optional backtrack context."""
-    from pali.config import MODES
+    from sheldrake.config import MODES
 
     effective_modes = modes if modes is not None else MODES
     state = _format_generation_state(mode, temperature, effective_modes)

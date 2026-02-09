@@ -34,7 +34,7 @@ repos:
         pass_filenames: false
       - id: pytest
         name: pytest
-        entry: uv run pytest --cov=pali --cov-fail-under=80
+        entry: uv run pytest --cov=sheldrake --cov-fail-under=80
         language: system
         types: [python]
         pass_filenames: false

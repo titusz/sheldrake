@@ -1,5 +1,5 @@
 [project]
-name = "pali"
+name = "sheldrake"
 version = "0.1.0"
 description = "Palimpsest — Where AI learns to use the backspace key."
 requires-python = ">=3.12"
@@ -11,14 +11,14 @@ dependencies = [
 ]
 
 [project.scripts]
-pali = "pali.__main__:app"
+sheldrake = "sheldrake.__main__:app"
 
 [build-system]
 requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [tool.hatch.build.targets.wheel]
-packages = ["src/pali"]
+packages = ["src/sheldrake"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
@@ -33,7 +33,7 @@ dev = [
 ]
 
 [tool.coverage.run]
-source = ["pali"]
+source = ["sheldrake"]
 
 [tool.coverage.report]
 exclude_also = [
@@ -41,10 +41,10 @@ exclude_also = [
     "if TYPE_CHECKING:",
 ]
 omit = [
-    "src/pali/__main__.py",
-    "src/pali/app.py",
-    "src/pali/widgets.py",
-    "src/pali/_win32_keys.py",
+    "src/sheldrake/__main__.py",
+    "src/sheldrake/app.py",
+    "src/sheldrake/widgets.py",
+    "src/sheldrake/_win32_keys.py",
 ]
 
 [tool.ruff]
@@ -55,7 +55,7 @@ target-version = "py312"
 select = ["E", "F", "W", "I", "UP", "B", "C", "SIM", "RUF"]
 
 [tool.ruff.lint.per-file-ignores]
-"src/pali/_win32_keys.py" = ["C901"]
+"src/sheldrake/_win32_keys.py" = ["C901"]
 
 [tool.ruff.lint.mccabe]
 max-complexity = 10

@@ -13,10 +13,10 @@ from textual.binding import Binding
 from textual.containers import Vertical, VerticalScroll
 from textual.widgets import Footer, Header, Markdown
 
-from pali import _win32_keys
-from pali.config import Settings
-from pali.protocol import Backtrack
-from pali.widgets import (
+from sheldrake import _win32_keys
+from sheldrake.config import Settings
+from sheldrake.protocol import Backtrack
+from sheldrake.widgets import (
     AssistantMessage,
     BacktrackIndicator,
     BacktrackPanel,
@@ -28,10 +28,10 @@ from pali.widgets import (
 _win32_keys.apply()
 
 
-class PalimpsestApp(App):
-    """Palimpsest — Where AI learns to use the backspace key."""
+class SheldrakeApp(App):
+    """Sheldrake — Where AI learns to use the backspace key."""
 
-    TITLE = "Palimpsest"
+    TITLE = "Sheldrake"
     SUB_TITLE = "cognitive backtracking"
 
     BINDINGS: ClassVar[list[Binding]] = [
@@ -104,8 +104,8 @@ class PalimpsestApp(App):
         status.mode = self.settings.default_mode
 
         if self._show_debug:
-            self._debug_file = open("pali_debug.log", "w", encoding="utf-8")  # noqa: SIM115
-            self._log_debug("[bold]Palimpsest debug trace[/bold]")
+            self._debug_file = open("sheldrake_debug.log", "w", encoding="utf-8")  # noqa: SIM115
+            self._log_debug("[bold]Sheldrake debug trace[/bold]")
 
         if not os.environ.get("ANTHROPIC_API_KEY"):
             chat = self.query_one("#chat-view", VerticalScroll)
@@ -119,8 +119,8 @@ class PalimpsestApp(App):
 
         from anthropic import AsyncAnthropic
 
-        from pali.inference import InferenceManager
-        from pali.stream import StreamProcessor
+        from sheldrake.inference import InferenceManager
+        from sheldrake.stream import StreamProcessor
 
         client = AsyncAnthropic()
         inference = InferenceManager(client, self.settings)

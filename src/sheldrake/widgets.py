@@ -1,4 +1,4 @@
-"""Custom Textual widgets for the Palimpsest TUI."""
+"""Custom Textual widgets for the Sheldrake TUI."""
 
 from __future__ import annotations
 

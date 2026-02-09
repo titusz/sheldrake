@@ -32,7 +32,7 @@ htmlcov/
 .ruff_cache/
 
 # Debug logs
-pali_debug.log
+sheldrake_debug.log
 
 # Environment
 .env

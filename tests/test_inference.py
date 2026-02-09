@@ -6,8 +6,8 @@ from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
-from pali.config import Settings
-from pali.inference import InferenceManager
+from sheldrake.config import Settings
+from sheldrake.inference import InferenceManager
 
 
 @pytest.fixture

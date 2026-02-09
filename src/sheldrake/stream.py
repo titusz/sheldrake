@@ -7,11 +7,11 @@ from collections.abc import AsyncIterator, Callable
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Protocol, runtime_checkable
 
-from pali.protocol import Backtrack, Checkpoint, SignalParser, TextChunk
-from pali.system_prompt import build_system_prompt
+from sheldrake.protocol import Backtrack, Checkpoint, SignalParser, TextChunk
+from sheldrake.system_prompt import build_system_prompt
 
 if TYPE_CHECKING:
-    from pali.config import Settings
+    from sheldrake.config import Settings
 
 
 @runtime_checkable

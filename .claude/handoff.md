@@ -9,7 +9,7 @@ truncates context to the checkpoint, and restarts with a hint about what went wr
 
 **Stack:** Textual TUI + Anthropic Python SDK + Pydantic, managed with uv.
 
-**Location:** `C:\Users\titusz\Code\ash\pali\`
+**Location:** `C:\Users\titusz\Code\sheldrake\`
 
 ## Current State
 
@@ -73,10 +73,10 @@ structural/pedagogical refinement. The prompt successfully triggers both.
 ## How to Run
 
 ```bash
-cd pali
-uv run pali                    # normal mode
-uv run pali --debug            # with debug panel + trace file (pali_debug.log)
-uv run pali --model claude-sonnet-4-20250514   # force a specific model
+cd sheldrake
+uv run sheldrake                    # normal mode
+uv run sheldrake --debug            # with debug panel + trace file (sheldrake_debug.log)
+uv run sheldrake --model claude-sonnet-4-20250514   # force a specific model
 uv run pytest tests/ -v        # run all tests
 ```
 
@@ -85,7 +85,7 @@ Requires `ANTHROPIC_API_KEY` in environment. Without it, the TUI shows an error 
 ## Architecture
 
 ```
-src/pali/
+src/sheldrake/
 ├── protocol.py      # Signal types + streaming parser state machine
 ├── config.py        # Settings, cognitive modes, defaults
 ├── system_prompt.py # Prompt template with dynamic backtrack hint injection
@@ -255,7 +255,7 @@ what "rewind to here" means across conversational exchanges. Deliberately out of
 ## Debug Trace Format
 
 When running with `--debug`, the debug panel (RichLog) shows events with Rich markup, and
-`pali_debug.log` gets the same content with markup stripped. Trace format:
+`sheldrake_debug.log` gets the same content with markup stripped. Trace format:
 
 ```
 user: 'the user message'                          — user message (turn start)

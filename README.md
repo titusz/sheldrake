@@ -2,7 +2,7 @@
 
 > Where AI learns to use the backspace key.
 
-Palimpsest (`pali`) is a terminal UI that enables an AI model to **rewind its own token stream
+Palimpsest (`sheldrake`) is a terminal UI that enables an AI model to **rewind its own token stream
 mid-generation**. The model places invisible checkpoints as it writes, detects suboptimal paths, and
 signals the system to cancel inference, truncate context back to a checkpoint, and restart with a hint
 about what went wrong.
@@ -75,17 +75,17 @@ The model can shift its temperature mid-response via the `mode` parameter:
 ## Installation
 
 ```bash
-git clone https://github.com/titusz/pali.git
-cd pali
+git clone https://github.com/titusz/sheldrake.git
+cd sheldrake
 uv sync
 ```
 
 ## Usage
 
 ```bash
-uv run pali                      # launch TUI
-uv run pali --debug              # with debug panel + trace file (pali_debug.log)
-uv run pali --model <model-id>   # use a specific Anthropic model (default: claude-opus-4-6)
+uv run sheldrake                      # launch TUI
+uv run sheldrake --debug              # with debug panel + trace file (sheldrake_debug.log)
+uv run sheldrake --model <model-id>   # use a specific Anthropic model (default: claude-opus-4-6)
 ```
 
 ## Development
@@ -95,7 +95,7 @@ uv run pali --model <model-id>   # use a specific Anthropic model (default: clau
 uv run pytest
 
 # run tests with coverage (80% minimum)
-uv run pytest --cov=pali --cov-fail-under=80
+uv run pytest --cov=sheldrake --cov-fail-under=80
 
 # run all quality gates
 uv run prek run --all-files
