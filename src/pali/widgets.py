@@ -5,6 +5,7 @@ from __future__ import annotations
 from typing import ClassVar
 
 from textual.binding import Binding
+from textual.containers import VerticalScroll
 from textual.message import Message
 from textual.reactive import reactive
 from textual.widgets import Markdown, Static, TextArea
@@ -53,6 +54,61 @@ class BacktrackIndicator(Static):
         super().__init__(f"⟲ rethinking... ({reason})")
 
 
+class BacktrackEntry(Static):
+    """Single backtrack event entry for the side panel."""
+
+    DEFAULT_CSS = """
+    BacktrackEntry {
+        color: $warning;
+        padding: 0 1;
+        margin: 0 0 1 0;
+        border-bottom: solid $surface-lighten-2;
+    }
+    """
+
+    def __init__(self, number: int, reason: str, mode: str | None = None) -> None:
+        parts = [f"#{number} {reason}"]
+        if mode:
+            parts.append(f"→ {mode}")
+        super().__init__("\n".join(parts))
+
+
+class BacktrackPanel(VerticalScroll):
+    """Collapsible right-docked panel showing backtrack events."""
+
+    DEFAULT_CSS = """
+    BacktrackPanel {
+        dock: right;
+        width: 40;
+        border-left: solid $surface-lighten-2;
+        background: $surface-darken-1;
+        padding: 1;
+    }
+    BacktrackPanel.-hidden {
+        display: none;
+    }
+    """
+
+    def __init__(self, **kwargs) -> None:
+        super().__init__(**kwargs)
+        self._count = 0
+
+    def compose(self):
+        yield Static("[b]Backtracks[/b]", markup=True)
+
+    def add_entry(self, reason: str, mode: str | None = None) -> None:
+        """Add a backtrack event to the panel."""
+        self._count += 1
+        self.mount(BacktrackEntry(self._count, reason, mode))
+        self.scroll_end(animate=False)
+
+    def clear(self) -> None:
+        """Remove all backtrack entries and reset counter."""
+        self._count = 0
+        for entry in self.query(BacktrackEntry):
+            entry.remove()
+
+
 class StatusBar(Static):
     """Bottom bar showing backtrack count, mode, and model."""
 
@@ -82,8 +138,8 @@ class ChatInput(TextArea):
     """Multiline chat input with Enter-to-submit and auto-grow."""
 
     BINDINGS: ClassVar[list[Binding]] = [
-        Binding("enter", "submit", "Submit", show=False, priority=True),
-        Binding("ctrl+j,shift+enter", "newline", "Newline", show=False),
+        Binding("enter", "submit", "Submit", priority=True),
+        Binding("shift+enter", "newline", "Newline"),
     ]
 
     DEFAULT_CSS = """

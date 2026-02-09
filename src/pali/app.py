@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import contextlib
 import io
 import os
 import re
@@ -11,13 +10,20 @@ from typing import Any, ClassVar
 from textual import work
 from textual.app import App, ComposeResult
 from textual.binding import Binding
-from textual.containers import VerticalScroll
-from textual.widgets import Header, Markdown, RichLog
+from textual.containers import Vertical, VerticalScroll
+from textual.widgets import Footer, Header, Markdown
 
 from pali import _win32_keys
 from pali.config import Settings
 from pali.protocol import Backtrack
-from pali.widgets import AssistantMessage, BacktrackIndicator, ChatInput, StatusBar, UserMessage
+from pali.widgets import (
+    AssistantMessage,
+    BacktrackIndicator,
+    BacktrackPanel,
+    ChatInput,
+    StatusBar,
+    UserMessage,
+)
 
 _win32_keys.apply()
 
@@ -29,24 +35,32 @@ class PalimpsestApp(App):
     SUB_TITLE = "cognitive backtracking"
 
     BINDINGS: ClassVar[list[Binding]] = [
-        Binding("escape", "cancel_inference", "Cancel", show=False),
+        Binding("escape", "cancel_inference", "Cancel"),
+        Binding("ctrl+o", "toggle_panel", "Backtracks"),
     ]
 
     CSS = """
-    #chat-view {
-        overflow-y: auto;
-    }
-    #chat-view.with-debug {
+    #main {
         height: 1fr;
     }
-    #debug-log {
-        height: 12;
-        border-top: solid $surface-lighten-2;
-        background: $surface-darken-1;
+    #chat-view {
+        overflow-y: auto;
+        height: 1fr;
     }
     #status {
         dock: bottom;
         height: 1;
+    }
+    Footer {
+        background: transparent;
+    }
+    Footer .footer-key--key {
+        background: transparent;
+        color: $text;
+        padding: 0 1;
+    }
+    Footer .footer-key--description {
+        color: $text-muted;
     }
     """
 
@@ -62,20 +76,21 @@ class PalimpsestApp(App):
 
     def compose(self) -> ComposeResult:
         yield Header(show_clock=True)
-        yield VerticalScroll(id="chat-view")
-        if self._show_debug:
-            yield RichLog(id="debug-log", markup=True, max_lines=200)
-        yield StatusBar(id="status")
-        yield ChatInput(id="input")
+        panel = BacktrackPanel(id="backtrack-panel")
+        panel.add_class("-hidden")
+        yield panel
+        with Vertical(id="main"):
+            yield VerticalScroll(id="chat-view")
+            yield StatusBar(id="status")
+            yield ChatInput(id="input")
+        yield Footer()
 
     _RICH_TAG_RE = re.compile(r"\[/?[a-z][a-z0-9_ ]*\]", re.IGNORECASE)
 
     def _log_debug(self, msg: str) -> None:
-        """Write to the debug panel and trace file."""
+        """Write to the debug trace file."""
         if not self._show_debug:
             return
-        with contextlib.suppress(Exception):
-            self.query_one("#debug-log", RichLog).write(msg)
         if self._debug_file:
             plain = self._RICH_TAG_RE.sub("", msg)
             self._debug_file.write(plain + "\n")
@@ -90,7 +105,6 @@ class PalimpsestApp(App):
 
         if self._show_debug:
             self._debug_file = open("pali_debug.log", "w", encoding="utf-8")  # noqa: SIM115
-            self.query_one("#chat-view").add_class("with-debug")
             self._log_debug("[bold]Palimpsest debug trace[/bold]")
 
         if not os.environ.get("ANTHROPIC_API_KEY"):
@@ -122,6 +136,8 @@ class PalimpsestApp(App):
         """Handle user message submission."""
         text = event.value
 
+        self.query_one("#backtrack-panel", BacktrackPanel).clear()
+
         chat = self.query_one("#chat-view", VerticalScroll)
         chat.mount(UserMessage(text))
 
@@ -144,6 +160,7 @@ class PalimpsestApp(App):
         status = self.query_one("#status", StatusBar)
         stream = Markdown.get_stream(response_widget)
         self._current_stream = stream
+        chat.anchor()
 
         async def on_text(t: str) -> None:
             await stream.write(t)
@@ -156,6 +173,9 @@ class PalimpsestApp(App):
             status.backtracks += 1
             if bt.mode:
                 status.mode = bt.mode
+            panel = self.query_one("#backtrack-panel", BacktrackPanel)
+            panel.add_entry(bt.reason, bt.mode)
+            panel.remove_class("-hidden")
 
         def on_error(msg: str) -> None:
             response_widget.update(f"**Error:** {msg}")
@@ -187,6 +207,10 @@ class PalimpsestApp(App):
         if action == "cancel_inference":
             return self._inferring
         return True
+
+    def action_toggle_panel(self) -> None:
+        """Toggle the backtrack side panel."""
+        self.query_one("#backtrack-panel", BacktrackPanel).toggle_class("-hidden")
 
     def action_cancel_inference(self) -> None:
         """Cancel the running inference worker."""
