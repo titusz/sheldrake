@@ -19,7 +19,19 @@ truncates context to the checkpoint, and restarts with a hint about what went wr
 - **Backtracking works end-to-end with Opus 4.6** — confirmed with multiple prompts (see below)
 - **Sonnet 4 also works** — backtracks more frequently than Opus
 
-### What Changed in This Session
+### What Changed Recently
+
+1. **Multiline ChatInput** — Replaced single-line `Input` with `ChatInput(TextArea)` subclass.
+    Enter submits, Shift+Enter / Ctrl+J inserts newline. Auto-grows up to 6 lines.
+
+1. **Win32 modifier+Enter monkeypatch** — Textual's VT input mode zeroes `dwControlKeyState`,
+    making Shift+Enter indistinguishable from Enter. `_win32_keys.py` patches `EventMonitor.run`
+    to read one input record at a time and poll `GetAsyncKeyState` (user32) for modifier state.
+    Injects Kitty CSI u sequences (`\x1b[13;2u` for shift+enter) so `XTermParser` produces the
+    correct key binding. Tracks: https://github.com/Textualize/textual/issues/6074
+
+1. **Esc to cancel inference** — `Binding("escape", "cancel_inference")` with `check_action` to
+    show only during active inference. Cancels the `@work(exclusive=True)` worker.
 
 1. **System prompt rewrite** — shifted framing from "error recovery tool" to "thinking in drafts."
     Key changes: identity-level framing ("you think in drafts"), checkpoint discipline section with
@@ -31,8 +43,6 @@ truncates context to the checkpoint, and restarts with a hint about what went wr
     uses `[user, assistant_preserved_text, user_continue_instruction]` instead of
     `[user, assistant_prefill]`. Works with all models. The phantom checkpoint concept (embedding
     `<<checkpoint:id>>` in prefill) is gone — re-emitted checkpoints just get re-registered harmlessly.
-
-1. **Updated test** — `test_prefill_includes_checkpoint_markup` → `test_retry_uses_multiturn_continuation`
 
 ## Confirmed Backtrack Results (Opus 4.6)
 
@@ -81,7 +91,8 @@ src/pali/
 ├── system_prompt.py # Prompt template with dynamic backtrack hint injection
 ├── inference.py     # Anthropic SDK wrapper with async cancel
 ├── stream.py        # Core orchestrator — the retry loop
-├── widgets.py       # Textual widgets (UserMessage, AssistantMessage, etc.)
+├── _win32_keys.py   # Monkeypatch: modifier+Enter via GetAsyncKeyState
+├── widgets.py       # Textual widgets (ChatInput, AssistantMessage, etc.)
 ├── app.py           # TUI app wiring
 └── __main__.py      # CLI entry point (typer)
 ```
@@ -290,10 +301,10 @@ Grounded in Laws of UX, mapped to Textual capabilities.
 
 ### P0 — High Impact
 
-- **1. Multiline ChatInput** (Jakob's Law) — TextArea subclass, Enter/Shift+Enter, auto-grow 1-6 lines
+- ~~**1. Multiline ChatInput** (Jakob's Law) — TextArea subclass, Enter/Shift+Enter, auto-grow 1-6 lines~~ DONE
 - **2. Disable Input During Inference** (Postel's Law) — `widget.loading` or `disabled`
 - **3. Footer with Dynamic Key Bindings** (Hick's Law) — context-sensitive shortcut hints
-- **4. Cancel Inference with Esc** (Goal-Gradient) — `Binding("escape", ...)` + worker cancel
+- ~~**4. Cancel Inference with Esc** (Goal-Gradient) — `Binding("escape", ...)` + worker cancel~~ DONE
 
 ### P1 — Medium Impact
 
@@ -310,6 +321,6 @@ Grounded in Laws of UX, mapped to Textual capabilities.
 ### P3 — Polish
 
 - **11. Smooth Height Animation** (Doherty Threshold) — `styles.animate("height", ...)`
-- **12. Focus-Aware Styling** (Common Region + Aesthetic-Usability) — `:focus` pseudo-class
+- ~~**12. Focus-Aware Styling** (Common Region + Aesthetic-Usability) — `:focus` pseudo-class~~ DONE (ChatInput)
 - **13. Streaming Markdown Optimization** (Doherty Threshold) — verify `MarkdownStream` batching
 - **14. Character Count Indicator** (Miller's Law) — char count when input > 500 chars
