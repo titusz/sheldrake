@@ -36,3 +36,6 @@ pali_debug.log
 
 # Environment
 .env
+
+# Plans
+.claude/plans/
