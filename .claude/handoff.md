@@ -283,3 +283,33 @@ dependencies = [
 ```
 
 Dev: `pytest>=8.0`, `pytest-asyncio>=0.25`
+
+## UX Improvement Proposals
+
+Grounded in Laws of UX, mapped to Textual capabilities.
+
+### P0 — High Impact
+
+- **1. Multiline ChatInput** (Jakob's Law) — TextArea subclass, Enter/Shift+Enter, auto-grow 1-6 lines
+- **2. Disable Input During Inference** (Postel's Law) — `widget.loading` or `disabled`
+- **3. Footer with Dynamic Key Bindings** (Hick's Law) — context-sensitive shortcut hints
+- **4. Cancel Inference with Esc** (Goal-Gradient) — `Binding("escape", ...)` + worker cancel
+
+### P1 — Medium Impact
+
+- **5. Dynamic Placeholder / Status Text** (Goal-Gradient) — contextual hints near input
+- **6. Auto-refocus After Response** (Doherty Threshold) — `widget.focus()` in finally block
+- **7. Toast Notifications** (Peak-End Rule) — `App.notify()` for state changes
+
+### P2 — Nice to Have
+
+- **8. Input History Navigation** (Zeigarnik + Serial Position) — Up/Down arrow cycles history
+- **9. Slash-Command Autocomplete** (Hick's Law) — `/help`, `/clear`, `/model`
+- **10. Command Palette** (Miller's Law) — Ctrl+P fuzzy command search
+
+### P3 — Polish
+
+- **11. Smooth Height Animation** (Doherty Threshold) — `styles.animate("height", ...)`
+- **12. Focus-Aware Styling** (Common Region + Aesthetic-Usability) — `:focus` pseudo-class
+- **13. Streaming Markdown Optimization** (Doherty Threshold) — verify `MarkdownStream` batching
+- **14. Character Count Indicator** (Miller's Law) — char count when input > 500 chars
