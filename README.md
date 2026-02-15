@@ -49,6 +49,17 @@ uv tool install sheldrake
 sheldrake
 ```
 
+### Run in a browser
+
+Sheldrake can also run as a web app served to your browser via
+[textual-serve](https://github.com/Textualize/textual-serve):
+
+```bash
+uv run textual serve "uvx sheldrake"
+```
+
+Then open <http://localhost:8000>. The TUI renders in an in-browser terminal via xterm.js.
+
 ## How it works
 
 The model's output contains inline signals that are invisible to the user but intercepted by a
