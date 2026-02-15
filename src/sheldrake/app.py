@@ -178,6 +178,7 @@ class SheldrakeApp(App):
         def on_done(text: str) -> None:
             pass
 
+        assert self._processor is not None
         self._inferring = True
         self.refresh_bindings()
         try:
