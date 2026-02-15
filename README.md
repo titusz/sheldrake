@@ -3,7 +3,7 @@
 > Where AI learns to use the backspace key.
 
 <p align="center">
-  <img src="https://raw.githubusercontent.com/titusz/sheldrake/main/docs/sheldrake-banner.jpg" alt="A sheldrake duck at a typewriter, surrounded by crumpled paper" width="700">
+  <img src="https://raw.githubusercontent.com/titusz/sheldrake/main/docs/sheldrake-hero.webp" alt="Charcoal sketch of a figure writing at a desk, text fragments lifting off the manuscript and dissolving into the air — some reforming into new words" width="700">
 </p>
 
 Sheldrake is a terminal UI that lets an AI model rewind its own token stream mid-generation. The
@@ -17,7 +17,7 @@ course-corrects in real time. It's like pair-programming with someone who actual
 backspace key.
 
 <p align="center">
-  <img src="https://raw.githubusercontent.com/titusz/sheldrake/main/docs/screenshot.jpg" alt="Sheldrake TUI showing a conversation with backtracking side panel" width="700">
+  <img src="https://raw.githubusercontent.com/titusz/sheldrake/main/docs/sheldrake-screenshot.webp" alt="Sheldrake TUI showing a conversation with backtracking side panel" width="700">
 </p>
 
 ## Quick start
