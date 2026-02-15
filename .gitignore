@@ -37,9 +37,10 @@ sheldrake_debug.log
 # Environment
 .env
 
-# Plans
+# Claude Code
 .claude/plans/
 .claude/skills/
+.claude/settings.local.json
 
 # Bubbling, alchemical, where secret raw ingredients transform ;)
 cauldron

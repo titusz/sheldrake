@@ -46,6 +46,8 @@ dev = [
     "pytest-cov>=6.0",
     "prek>=0.3",
     "ty>=0.0.1a0",
+    "textual-web>=0.4.2",
+    "textual-dev>=1.8.0",
 ]
 
 [tool.coverage.run]
